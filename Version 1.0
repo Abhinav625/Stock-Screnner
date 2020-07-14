@@ -1,0 +1,48 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+from openpyxl import *
+import numpy as np
+import time
+import pandas as pd
+import xlrd
+
+df = xlrd.open_workbook('Stock Datasheet.xlsx')
+sheet = df.sheet_by_index(0)
+sheet.cell_value(1, 0)  
+StockSymbols = []
+Output = []
+
+for i in range(1, sheet.nrows):
+	StockSymbols.append(sheet.cell_value(i, 0))
+	print(StockSymbols)
+
+option = webdriver.ChromeOptions()
+option.add_argument("headless")
+
+URL = "https://www.tradingview.com/symbols/NSE-"
+
+timeout = 10
+
+wb=load_workbook('Stock Datasheet.xlsx')
+ws=wb["Sheet1"]
+
+for i in range(len(StockSymbols)):
+	browser = webdriver.Chrome(chrome_options=option)
+	Symbol = StockSymbols[i]
+	browser.get(URL + Symbol)
+	j = i + 2	
+	try:
+		element = WebDriverWait(browser, timeout).until(EC.visibility_of_element_located((By.XPATH,"//span[contains(.,'Market Capitalization')]/following-sibling::span[1]")))
+		Output.append(element.text)
+		ws.cell(j,2).value = Output[i]
+	except TimeoutException:
+		print("Timed out waiting for page to load")
+		Output.append("NA")
+		ws.cell(j,2).value = Output[i]
+	browser.quit()
+
+print(Output)
+wb.save('Stock Datasheet.xlsx')
